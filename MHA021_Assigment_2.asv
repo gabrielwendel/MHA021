@@ -106,12 +106,12 @@ HEA100_prop = repmat([E A(1) I(1)], num_HEA100_beams, 1);
 HEA120_prop = repmat([E A(2) I(2)], num_HEA120_beams, 1);
 
 % ep = [E A I]
-ep = zeros(7,3);
+Ep = zeros(7,3);
 
 % Beam 1,2,3 and 4 are HEA100 beams
-ep(1:4, :) = HEA100_prop;
+Ep(1:4, :) = HEA100_prop;
 % Beam 5,6 and 7 are HEA120 beams
-ep(5:end,:) = HEA120_prop;
+Ep(5:end,:) = HEA120_prop;
 
 % Load vector q_e rows = number of beams
 q_e = zeros(7,2);
@@ -153,11 +153,11 @@ hold on
 f = zeros(21,1);
 K = zeros(21);
 
-% Compute element stiffness matrix for a two dimensional beam element by
-% using CALFEM function "beam2e"
+% Compute element stiffness matrix and element load vector for a two 
+% dimensional beam element by using CALFEM function "beam2e"
 for i=1:length(Edof)
     % Loop over all elements and construct stiffness matrix and load vector
-    [Ke,fe] = beam2e(Ex(i,:), Ey(i,:), ep(i,:), q_e(i,:));
+    [Ke,fe] = beam2e(Ex(i,:), Ey(i,:), Ep(i,:), q_e(i,:));
     % Assembly
     [K,f] = assem(Edof(i,:), K, Ke, f, fe);
 end
@@ -170,23 +170,77 @@ f(20) = -P_m;
 % Boundary conditions
 bc = [1 0; 2 0; 3 0; 10 0; 11 0; 12 0];
 
-% solve for displacement, a
+% Solve for displacement, a
 a = solveq(K, f, bc);
 
-% maximum displacement
+% Maximum displacement
 max_disp = max(abs(a));
 
-% extract element displacements from the global solution vector
-e_disp = extract(Edof, a);
+% Extract all degrees of freedom for each element
+Ed = extract_dofs(Edof, a);
 
-[sfac] = scalfact2(Ex, Ey, e_disp, 0.1);
+sfac = scalfact2(Ex, Ey, Ed, 0.1);
+
+plotpar = [2 1 0];
 
 figure(1)
-eldisp2(Ex, Ey, e_disp, [2 3 1], sfac)
-xlabel('x[m]')
-ylabel('y[m]')
+eldisp2(Ex, Ey, Ed, plotpar, sfac)
+xlabel('x [m]')
+ylabel('y [m]')
 title('Gondola displacement (ratio = 0.1)')
-legend('Original struc')
+
+
+n = 20; % number of evaluation points along the beam
+
+% Compute sectional forces along the element [N V M]
+% column 1 is normal forces, column 2 is th shear force and column 3 is 
+% the bending moment 
+% rows = number of beams * evaluation points
+% es = zeros(length(Edof)*n,3);
+for i=1:length(Edof)
+    SectionalForces(i).es = beam2s(Ex(i,:), Ey(i,:), Ep(i,:), Ed(i,:), q_e(i,:), n);
+end
+
+sfacs = [5e-5, 3e-5, 2e-5];  % Set the scaling factors
+
+titles = {'Normal force', 'Shear force', 'Bending moment'};  % Set the titles
+
+for j=1:3
+
+end
+
+%%
+
+% plot without loop
+figure(2)
+sfac_1 = 5e-5;
+for i=1:length(Edof)
+    eldia2(Ex(i, :), Ey(i, :), SectionalForces(i).es(:,1), [2 1], sfac_1);
+    hold on
+end
+xlabel('x [m]')
+ylabel('y [m]')
+title('Normal force')
+
+figure(3)
+sfac_2 = 3e-5;
+for i=1:length(Edof)
+    eldia2(Ex(i, :), Ey(i, :), SectionalForces(i).es(:,2), [2 1], sfac_2);
+    hold on
+end
+xlabel('x [m]')
+ylabel('y [m]')
+title('Shear force')
+
+figure(4)
+sfac_3 = 2e-5;
+for i=1:length(Edof)
+    eldia2(Ex(i, :), Ey(i, :), SectionalForces(i).es(:,3), [2 1], sfac_3);
+    hold on
+end
+xlabel('x [m]')
+ylabel('y [m]')
+title('Bending moment')
 
 
 
