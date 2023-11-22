@@ -105,6 +105,14 @@ num_HEA120_beams = 3;
 HEA100_prop = repmat([E A(1) I(1)], num_HEA100_beams, 1);
 HEA120_prop = repmat([E A(2) I(2)], num_HEA120_beams, 1);
 
+% ep = [E A I]
+ep = zeros(7,3);
+
+% Beam 1,2,3 and 4 are HEA100 beams
+ep(1:4, :) = HEA100_prop;
+% Beam 5,6 and 7 are HEA120 beams
+ep(5:end,:) = HEA120_prop;
+
 % Load vector q_e rows = number of beams
 q_e = zeros(7,2);
 % Beam 5,6 and 7 experience loads
@@ -136,8 +144,9 @@ Coords = [0 0; -L1*sind(alpha) L1*cosd(alpha);0 2*(L1*cosd(alpha));L2 0;...
 % Element coordinates Ex, Ey
 [Ex, Ey] = coordxtr(Edof, Coords, Dof, 2);
 
+% Illustrate the construction
 figure(1)
-eldraw2(Ex, Ey, [2 3 0], Edof(:,1))
+eldraw2(Ex, Ey, [2 3 1], Edof(:,1))
 
 % Initialize load vector and stiffness matrix
 f = zeros(21,1);
@@ -145,6 +154,21 @@ K = zeros(21);
 
 % Compute element stiffness matrix for a two dimensional beam element by
 % using CALFEM function "beam2e"
+for i=1:length(Edof)
+    % Loop over all elements and construct stiffness matrix and load vector
+    [Ke,fe] = beam2e(Ex(i,:), Ey(i,:), ep(i,:), q_e(i,:));
+    % Assembly
+    [K,f] = assem(Edof(i,:), K, Ke, f, fe);
+end
+
+% Add point forces to load vector
+f(4) = P2;
+f(7) = P1;
+f(20) = -P_m;
+
+% Boundary conditions
+bc = [1 0; 2 0; 3 0; 10 0; 11 0; 12 0];
+
 
 
 
