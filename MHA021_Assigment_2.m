@@ -170,13 +170,13 @@ f(20) = -P_m;
 % Boundary conditions
 bc = [1 0; 2 0; 3 0; 10 0; 11 0; 12 0];
 
-% solve for displacement, a
+% Solve for displacement, a
 a = solveq(K, f, bc);
 
-% maximum displacement
+% Maximum displacement
 max_disp = max(abs(a));
 
-% extract element displacements from the global solution vector
+% Extract element displacements from the global solution vector
 e_disp = extract(Edof, a);
 
 [sfac] = scalfact2(Ex, Ey, e_disp, 0.1);
