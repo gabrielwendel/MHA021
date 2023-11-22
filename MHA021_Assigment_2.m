@@ -146,7 +146,8 @@ Coords = [0 0; -L1*sind(alpha) L1*cosd(alpha);0 2*(L1*cosd(alpha));L2 0;...
 
 % Illustrate the construction
 figure(1)
-eldraw2(Ex, Ey, [2 3 1], Edof(:,1))
+eldraw2(Ex, Ey, [1 1 1], Edof(:,1))
+hold on
 
 % Initialize load vector and stiffness matrix
 f = zeros(21,1);
@@ -169,7 +170,23 @@ f(20) = -P_m;
 % Boundary conditions
 bc = [1 0; 2 0; 3 0; 10 0; 11 0; 12 0];
 
+% solve for displacement, a
+a = solveq(K, f, bc);
 
+% maximum displacement
+max_disp = max(abs(a));
+
+% extract element displacements from the global solution vector
+e_disp = extract(Edof, a);
+
+[sfac] = scalfact2(Ex, Ey, e_disp, 0.1);
+
+figure(1)
+eldisp2(Ex, Ey, e_disp, [2 3 1], sfac)
+xlabel('x[m]')
+ylabel('y[m]')
+title('Gondola displacement (ratio = 0.1)')
+legend('Structure without load', 'Deformed structure', 'Location', 'southeast')
 
 
 
