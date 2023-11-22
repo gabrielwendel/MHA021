@@ -206,6 +206,7 @@ sfacs = [5e-5, 3e-5, 2e-5];  % Set the scaling factors
 
 titles = {'Normal force', 'Shear force', 'Bending moment'};  % Set the titles
 
+% plot sectional forces
 for j=1:3
     figure(j+1)
     for i=1:length(Edof)
