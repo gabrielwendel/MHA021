@@ -191,20 +191,21 @@ ylabel('y [m]')
 title('Gondola displacement (ratio = 0.1)')
 
 
+
 n = 20; % number of evaluation points along the beam
 
 % Compute sectional forces along the element [N V M]
 % column 1 is normal forces, column 2 is th shear force and column 3 is 
 % the bending moment 
-% rows = number of beams * evaluation points
-% es = zeros(length(Edof)*n,3);
 for i=1:length(Edof)
     SectionalForces(i).es = beam2s(Ex(i,:), Ey(i,:), Ep(i,:), Ed(i,:), q_e(i,:), n);
 end
 
-sfacs = [5e-5, 3e-5, 2e-5];  % Set the scaling factors
+% Scaling factors
+sfacs = [5e-5, 3e-5, 2e-5];  
 
-titles = {'Normal force', 'Shear force', 'Bending moment'};  % Set the titles
+% Titles for the three plots
+titles = {'Normal force', 'Shear force', 'Bending moment'};
 
 % plot sectional forces
 for j=1:3
@@ -218,38 +219,97 @@ for j=1:3
     title(titles{j})
 end
 
-%%
-
-% plot without loop
-figure(2)
-sfac_1 = 5e-5;
+% Maximum bending moment
+max_M_beam = zeros(length(Edof),1);
+% Loop over structure, max_M_beam = max bending moment for every beam
 for i=1:length(Edof)
-    eldia2(Ex(i, :), Ey(i, :), SectionalForces(i).es(:,1), [2 1], sfac_1);
-    hold on
+    max_M_beam(i) = max(abs(SectionalForces(i).es(:,3)));
 end
-xlabel('x [m]')
-ylabel('y [m]')
-title('Normal force')
 
-figure(3)
-sfac_2 = 3e-5;
-for i=1:length(Edof)
-    eldia2(Ex(i, :), Ey(i, :), SectionalForces(i).es(:,2), [2 1], sfac_2);
-    hold on
+% Max bending moment in structure
+max_M = max(abs(max_M_beam));
+
+% z = h/2 for HEA100 and HEA120 beam [m^3]
+z = [4.8e-2 5.7e-2];
+
+% Initialize stress matrices, rows = number of beams, columns = number of
+% evalution points
+sig_upper = zeros(length(Edof), n);
+sig_lower = zeros(length(Edof), n);
+
+% Start with HEA100 beam
+k = 1;
+
+% Calculate stress on every beam
+for i = 1:length(SectionalForces)
+    % At every evaluation point on the beam
+    % If beam number > 4 => HEA120 beam
+    if i > 4
+        k = 2;
+    end
+    for j = 1:n
+        sig_upper(i, j) = SectionalForces(i).es(j, 3) / I(k) * z(k);
+        sig_lower(i, j) = -SectionalForces(i).es(j, 3) / I(k) * z(k);
+    end
 end
-xlabel('x [m]')
-ylabel('y [m]')
-title('Shear force')
 
-figure(4)
-sfac_3 = 2e-5;
-for i=1:length(Edof)
-    eldia2(Ex(i, :), Ey(i, :), SectionalForces(i).es(:,3), [2 1], sfac_3);
-    hold on
+% Sigma_max and position
+[sig_upper_max, pos_upper] = max(abs(sig_upper(:)));
+[sig_lower_max, pos_lower] = max(abs(sig_lower(:)));
+
+
+%% reference
+
+n = 20;
+es = zeros ( length ( Edof ) *n , 3) ;
+
+for i = 1: length ( Edof )
+    es ((( i -1) * n +1) :( n * i ) ,:) =...
+    beam2s ( Ex (i , :) , Ey (i , :) , Ep (i ,:) , Ed (i ,:) , q_e (i ,:) , n ) ;
 end
-xlabel('x [m]')
-ylabel('y [m]')
-title('Bending moment')
+
+sfac = [5e-5, 3e-5, 2e-5];
+txt = [" Normal force " , " Shear force " , " Bending moment "];
+
+for j = 1:3
+    figure ( j +1)
+    for i = 1: length ( Edof )
+        eldia2 ( Ex (i , :) , Ey (i , :) , es ((( i -1) * n +1) :( n * i ) ,j ) , [2 1] ,sfac ( j ) ) ;
+        hold on
+    end
+    xlabel ('x [m]')
+    ylabel ('y [m]')
+    title ( txt ( j ) )
+end
+
+M_max = max ( abs ( es (: ,3) ) )
 
 
+z = [48e-3 57e-3];
+
+j = 1;
+
+sigma_upper = zeros ( length ( es ) , 1) ;
+sigma_lower = zeros ( length ( es ) , 1) ;
+
+for i = 1: length ( es )
+
+    if i > 6* n
+        j = 2;
+    end
+
+    sigma_upper ( i ) = es (i , 3) / I ( j ) * z ( j ) ;
+    sigma_lower ( i ) = - es (i , 3) / I ( j ) * z ( j ) ;
+end
+
+[ sigma_max_upper , I_upper ] = max ( abs ( sigma_upper ) ) ;
+[ sigma_max_lower , I_lower ] = max ( abs ( sigma_lower ) ) ;
+
+if sigma_max_upper > sigma_max_lower
+    sigma_max = sigma_max_upper ;
+    I_pos = I_upper ;
+else
+    sigma_max = sigma_max_lower ;
+    I_pos = I_lower ;
+end
 
