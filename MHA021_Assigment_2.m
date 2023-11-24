@@ -190,8 +190,6 @@ xlabel('x [m]')
 ylabel('y [m]')
 title('Gondola displacement (ratio = 0.1)')
 
-
-
 n = 20; % number of evaluation points along the beam
 
 % Compute sectional forces along the element [N V M]
@@ -248,12 +246,13 @@ for i = 1:length(SectionalForces)
         k = 2;
     end
     for j = 1:n
+        % Naviers formula, excluding normal force, sigma = Mz/I
         sig_upper(i, j) = SectionalForces(i).es(j, 3) / I(k) * z(k);
         sig_lower(i, j) = -SectionalForces(i).es(j, 3) / I(k) * z(k);
     end
 end
 
-% Sigma_max and position
+% Sigma_max and element number
 [sig_upper_max, pos_upper] = max(abs(sig_upper(:)));
 [sig_lower_max, pos_lower] = max(abs(sig_lower(:)));
 
@@ -312,4 +311,5 @@ else
     sigma_max = sigma_max_lower ;
     I_pos = I_lower ;
 end
+
 
