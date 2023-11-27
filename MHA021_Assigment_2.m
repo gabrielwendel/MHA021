@@ -65,6 +65,34 @@ colorbar
 axis equal
 axis off
 
+%Linear transmittance
+Q_out=0
+outside_boundary_index=find(boundaryMaterial(:,2)==1)
+for i=1:length(outside_boundary_index)
+    ex=boundaryEx(element,:);
+    ey=boundaryEy(element,:);
+    i_index=boundaryEdof(i,2);
+    j_index=boundaryEdof(i,3);
+    T_i=a(i_index);
+    T_j=a(j_index);
+    L_ex=ex(2)-ex(1);
+    L_ey=ey(2)-ey(1);
+    L_e=sqrt(L_ex^2+L_ey^2);
+    Tamb=T(boundaryMaterial( element, 2 ));
+    Q_e=alpha*L_e*thickness*((T_i+T_j)/2-Tamb);
+    Q_out=Q_out+Q_e;
+end
+Q_out=2*Q_out;
+%analytic solution
+R_conv=1/(alpha);
+R_1=h1/(k1);
+R_2=h2/(k2);
+R_3=h3/(k3);
+R_ekv=2*R_conv+R_1+R_2+R_3;
+q_analytic=(T_in-T_out)/R_ekv
+
+psi=(abs(Q_out)-q_analytic*H)/(T_in-T_out)
+
 %% Task 2
 
 % Lengths [m]
@@ -256,60 +284,17 @@ end
 [sig_upper_max, pos_upper] = max(abs(sig_upper(:)));
 [sig_lower_max, pos_lower] = max(abs(sig_lower(:)));
 
-
-%% reference
-
-n = 20;
-es = zeros ( length ( Edof ) *n , 3) ;
-
-for i = 1: length ( Edof )
-    es ((( i -1) * n +1) :( n * i ) ,:) =...
-    beam2s ( Ex (i , :) , Ey (i , :) , Ep (i ,:) , Ed (i ,:) , q_e (i ,:) , n ) ;
-end
-
-sfac = [5e-5, 3e-5, 2e-5];
-txt = [" Normal force " , " Shear force " , " Bending moment "];
-
-for j = 1:3
-    figure ( j +1)
-    for i = 1: length ( Edof )
-        eldia2 ( Ex (i , :) , Ey (i , :) , es ((( i -1) * n +1) :( n * i ) ,j ) , [2 1] ,sfac ( j ) ) ;
-        hold on
-    end
-    xlabel ('x [m]')
-    ylabel ('y [m]')
-    title ( txt ( j ) )
-end
-
-M_max = max ( abs ( es (: ,3) ) )
-
-
-z = [48e-3 57e-3];
-
-j = 1;
-
-sigma_upper = zeros ( length ( es ) , 1) ;
-sigma_lower = zeros ( length ( es ) , 1) ;
-
-for i = 1: length ( es )
-
-    if i > 6* n
-        j = 2;
-    end
-
-    sigma_upper ( i ) = es (i , 3) / I ( j ) * z ( j ) ;
-    sigma_lower ( i ) = - es (i , 3) / I ( j ) * z ( j ) ;
-end
-
-[ sigma_max_upper , I_upper ] = max ( abs ( sigma_upper ) ) ;
-[ sigma_max_lower , I_lower ] = max ( abs ( sigma_lower ) ) ;
-
-if sigma_max_upper > sigma_max_lower
-    sigma_max = sigma_max_upper ;
-    I_pos = I_upper ;
+% Where does the max bending stress occur, upper or lower
+if sig_upper_max > sig_lower_max
+    sig_max = sig_upper_max;
 else
-    sigma_max = sigma_max_lower ;
-    I_pos = I_lower ;
+    sig_max = sig_lower_max;
 end
+
+% Yield limit of the material [Pa]
+sig_yield = 250*10^6;
+
+% Determine factor of safety sigma_yield/sigma_max [-]
+factor_of_safety = sig_yield/sig_max;
 
 

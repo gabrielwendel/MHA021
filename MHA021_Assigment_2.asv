@@ -256,6 +256,16 @@ end
 [sig_upper_max, pos_upper] = max(abs(sig_upper(:)));
 [sig_lower_max, pos_lower] = max(abs(sig_lower(:)));
 
+if sig_upper_max > sig_lower_max
+    sig_max = sig_upper_max;
+else
+    sig_max = sig_lower_max;
+end
 
+% Yield limit of the material [Pa]
+sig_yield = 250*10^6;
+
+% Determine factor of safety sigma_
+factor_of_safety = sig_yield/sig_max;
 
 
