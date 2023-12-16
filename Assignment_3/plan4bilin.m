@@ -39,8 +39,8 @@ ngp   = ep(2)^2; % Total gauss points = ( NoGaussPoits per direction )^2
 
 %  Initialize Ke and fe with zeros for all of their elements
 
-Ke = zeros(..........
-fe = zeros(..........
+Ke = zeros(8,8);
+fe = zeros(8,1);
 
 %  Tolerance for the Jacobian determinant
 
@@ -52,24 +52,55 @@ minDetJ = 1.e-16;
 %  in each direction (ksi, eta). (or else 1, 4 or 9 Gauss points in total)
 
 if ngp == 1 % 1x 1 integration
+    GP=0;
+    iW=2;
  
- intWeight   = .........;
- GaussPoints = .........;
+ intWeight   = [iW iW];
+ GaussPoints = [GP GP];
 
 elseif ngp == 4 % 2 x 2 integration
+
+    GP1=0.5773502691896257;
+    GP2=-GP1;
+    iW=1;
  
- intWeight = ...........;
+ intWeight = [iW iW;
+     iW iW;
+     iW iW;
+     iW iW];
              
       
- GaussPoints = .........;
+ GaussPoints = [GP2 GP2;
+     GP1 GP2;
+     GP2 GP1;
+     GP1 GP1];
                 
          
 elseif ngp == 9 % 3 x 3 integration
+    GP1=0.7745966692414834;
+    GP2=0
  
- intWeight = ...........;
+ intWeight = [iW1 iW1;
+     iW2 iW1;
+     iW1 iW1;
+     iW1 iW2;
+     iW2 iW2;
+     iW1 iW2;
+     iW1 iW1;
+     iW2 iW1;
+     iW1 iW1];
+
               
       
- GaussPoints = .........;
+ GaussPoints =  [-GP1 -GP1 ;
+     GP2 -GP1;
+     GP1 -GP1;
+     -GP1 GP2;
+     GP2 GP2;
+     GP1 GP2;
+     -GP1 GP1;
+     GP2 GP1;
+     GP1 GP1];
                
          
 else
@@ -82,29 +113,40 @@ end
 
 for gpIndex = 1:ngp
  
- xsi       = ........; 
- weightXsi = ........;
- eta       = ........;
- weightEta = ........;
+ xsi       = GaussPoints(gpIndex,1); 
+ weightXsi = intWeight(gpIndex, 1);
+ eta       = GaussPoints(gpIndex,2);
+ weightEta = intWeight(gpIndex, 2);
  
 % Compute the element shape functions Ne (use xsi and eta from above)
+N1e= (xsi-1)*(eta-1)/4;
+N2e= -(xsi+1)*(eta-1)/4;
+N3e= (xsi+1)*(eta+1)/4;
+N4e= -(xsi-1)*(eta+1)/4;
 
- Ne = .....;
+ Ne = [N1e 0 N2e 0 N3e 0 N4e 0;
+        0 N1e 0 N2e 0 N3e 0 N4e ];
 
 % Compute derivatives (with respect to xsi and eta) of the
 % shape functions at coordinate (xsi,eta). Since the element is
 % isoparametic, these are also the derivatives of the basis functions.
 
- .........
+dNe_dxsi=[(eta-1)/4, -(eta-1)/4, (eta+1)/4, -(eta+1)/4];
+dNe_dxeta=[(xsi-1)/4, -(xsi+1)/4, (xsi+1)/4, -(xsi-1)/4];
+
+dx_dxsi=dNe_dxsi*ex';
+dx_deta=dNe_dxeta*ex';
+dy_dxsi=dNe_dxsi*ey';
+dy_deta=dNe_dxeta*ey';
 
 %  Use shape function derivatives and element vertex coordinates 
 %  to establish the Jacobian matrix.
 
- ........
+ J=[dx_dxsi dx_deta; dy_dxsi dy_deta];
 
 %  Compute the determinant of the Jacobian and check that it is OK
 
- detJ = det(......);
+ detJ = det(J);
 
  if ( detJ < minDetJ )
 
@@ -115,24 +157,30 @@ for gpIndex = 1:ngp
 
 % Determinant seems OK - invert the transpose of the Jacobian
 
- .........
+ J_T_inv=inv(J');
 
 %   Compute derivatives with respect to x and y, of all basis functions,
 
- .....
+ dNe_dx_dy=J_T_inv*[dNe_dxsi; dNe_dxeta];
 
 % Use the derivatives of the shape functions to compute the element
 % B-matrix, Be
 
- Be = ......;
+ Be = zeros(3,8);
+ Be(1, 1:2:end)=dNe_dx_dy(1,:); %Insert every second column
+ Be(2, 2:2:end)=dNe_dx_dy(2,:);
+ Be(3, 1:2:end)=dNe_dx_dy(2,:); %Insert every column
+ Be(3, 2:2:end)=dNe_dx_dy(1,:);
+
+
 
 % Compute the contribution to element stiffness matrix and volume load vector 
 % from current Gauss point
 % (check for plane strain or plane stress again!)     
 
- Ke = Ke + .....;
+ Ke = Ke + Be'*D*t*Be*detJ*weightXsi*weightEta;
 
- fe = fe + .....;   
+ fe = fe + Ne'*eq*t*detJ*weightXsi*weightEta;   
 
 end  
 

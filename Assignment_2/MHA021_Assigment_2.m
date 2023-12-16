@@ -1,11 +1,13 @@
 %% MHA021 FEM - Assigment 2
+% Group 33
+% Gabriel Wendel, Nils Helgesson
 close all;
 clear all;
 clc;
 
 %% Task 1
 
-load('Mesh_dataCoarse.mat')
+load('Mesh_data.mat')
 
 %indata
 h1=0.35;
@@ -69,8 +71,8 @@ axis off
 Q_out=0
 outside_boundary_index=find(boundaryMaterial(:,2)==1)
 for i=1:length(outside_boundary_index)
-    ex=boundaryEx(element,:);
-    ey=boundaryEy(element,:);
+    ex=boundaryEx(i,:);
+    ey=boundaryEy(i,:);
     i_index=boundaryEdof(i,2);
     j_index=boundaryEdof(i,3);
     T_i=a(i_index);
@@ -78,7 +80,7 @@ for i=1:length(outside_boundary_index)
     L_ex=ex(2)-ex(1);
     L_ey=ey(2)-ey(1);
     L_e=sqrt(L_ex^2+L_ey^2);
-    Tamb=T(boundaryMaterial( element, 2 ));
+    Tamb=T(boundaryMaterial(i, 2 ));
     Q_e=alpha*L_e*thickness*((T_i+T_j)/2-Tamb);
     Q_out=Q_out+Q_e;
 end
@@ -93,7 +95,7 @@ q_analytic=(T_in-T_out)/R_ekv
 
 psi=(abs(Q_out)-q_analytic*H)/(T_in-T_out)
 
-%% Task 2
+%% Task 3
 
 % Lengths [m]
 L1 = 4;
@@ -218,6 +220,8 @@ xlabel('x [m]')
 ylabel('y [m]')
 title('Gondola displacement (ratio = 0.1)')
 
+
+
 n = 20; % number of evaluation points along the beam
 
 % Compute sectional forces along the element [N V M]
@@ -274,27 +278,12 @@ for i = 1:length(SectionalForces)
         k = 2;
     end
     for j = 1:n
-        % Naviers formula, excluding normal force, sigma = Mz/I
         sig_upper(i, j) = SectionalForces(i).es(j, 3) / I(k) * z(k);
         sig_lower(i, j) = -SectionalForces(i).es(j, 3) / I(k) * z(k);
     end
 end
 
-% Sigma_max and element number
+% Determine max stress and where it occurs
 [sig_upper_max, pos_upper] = max(abs(sig_upper(:)));
 [sig_lower_max, pos_lower] = max(abs(sig_lower(:)));
-
-% Where does the max bending stress occur, upper or lower
-if sig_upper_max > sig_lower_max
-    sig_max = sig_upper_max;
-else
-    sig_max = sig_lower_max;
-end
-
-% Yield limit of the material [Pa]
-sig_yield = 250*10^6;
-
-% Determine factor of safety sigma_yield/sigma_max [-]
-factor_of_safety = sig_yield/sig_max;
-
 
